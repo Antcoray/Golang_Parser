@@ -1,0 +1,7 @@
+{
+    "operators":{
+        "+": true,
+        "-": true,
+        "=": true
+    }
+}
