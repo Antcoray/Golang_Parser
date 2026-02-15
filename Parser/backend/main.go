@@ -15,13 +15,53 @@ type Config struct {
 }
 
 type Analyzer struct {
-	count int
+	config Config
+	count  int
 }
 
 func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
-	case *ast.Ident:
-		fmt.Println(n.Name)
+	case *ast.AssignStmt:
+		if n.Tok == token.ASSIGN && v.config.Operators["="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.DEFINE && v.config.Operators[":="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.ADD_ASSIGN && v.config.Operators["+="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.SUB_ASSIGN && v.config.Operators["-="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.MUL_ASSIGN && v.config.Operators["*="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.QUO_ASSIGN && v.config.Operators["/="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.REM_ASSIGN && v.config.Operators["%="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.AND_ASSIGN && v.config.Operators["&="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.OR_ASSIGN && v.config.Operators["|="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.XOR_ASSIGN && v.config.Operators["^="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.SHL_ASSIGN && v.config.Operators["<<="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.SHR_ASSIGN && v.config.Operators[">>="] {
+			fmt.Println(n.Tok)
+		}
+		if n.Tok == token.AND_NOT_ASSIGN && v.config.Operators["&^="] {
+			fmt.Println(n.Tok)
+		}
+
 	}
 	return v
 }
@@ -53,13 +93,14 @@ func main() {
 
 	fpath = filepath.Join("..", "..", "ExampleCode", "main.go")
 
-	fset := token.NewFileSet()
-
-	node, err := parser.ParseFile(fset, fpath, nil, parser.SkipObjectResolution)
+	node, err := parser.ParseFile(token.NewFileSet(), fpath, nil, parser.SkipObjectResolution)
 	if err != nil {
 		panic(err)
 	}
 
+	analyzer.config = config
+
 	ast.Walk(&analyzer, node)
+	fmt.Println(analyzer.count)
 
 }
