@@ -9,7 +9,7 @@ type Config struct {
 	Operators map[string]bool `json:"operators"`
 }
 
-func LoadConfig(fpath string) Config {
+func LoadConfig(fpath string) Config { // json -> var
 
 	file, err := os.Open(fpath)
 	if err != nil {

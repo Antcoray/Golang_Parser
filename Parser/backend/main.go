@@ -1,23 +1,20 @@
 package main
 
 import (
-	"Parser/assets"
-	"log"
+	"Parser/routes"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// η
+	r := gin.Default()
 
-	assets.InitializeAnalyzer()
-	app := fiber.New()
+	r.Static("/web", "../web")
+	r.StaticFile("/", "../web/index.html")
 
-	app.Get("/", func(c fiber.Ctx) error {
-		// Send a string response to the client
-		return c.SendString("Hello, World 👋!")
-	})
+	routes.SetupAnalyzerRoutes(r)
 
-	// Start the server on port 3000
-	log.Fatal(app.Listen("0.0.0.0:5005"))
+	r.Run("0.0.0.0:5005")
 
 }

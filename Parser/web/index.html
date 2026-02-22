@@ -1,11 +1,60 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta name="viewport" content="width=device-width">
-        <meta charset="UTF-8">
-        <title>METRICS</title>
-    </head>
-    <body>
-        <script src="assets/js/main.js"></script>
-    </body>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>METRICS</title>
+    <link rel="stylesheet" href="/web/assets/css/main.css">
+</head>
+<body>
+    <!-- Баннер 16:9 -->
+    <div class="banner" role="img" aria-label="banner"></div>
+
+    <h1>Метрики Холстеда (6 базовых и 3 расширенных)</h1>
+    
+    <!-- Зона drag-and-drop -->
+    <div id="dropZone" class="drop-zone">
+        <p>Перетащите .go файл сюда или нажмите для выбора</p>
+        <input type="file" id="fileInput" accept=".go" style="display: none;">
+    </div>
+
+    <!-- Информация о выбранном файле -->
+    <div id="fileInfo" class="file-info"></div>
+
+    <!-- Кнопка загрузки на сервер -->
+    <button id="uploadBtn" disabled>Загрузить файл на сервер</button>
+
+    <!-- Контейнер для таблицы и расширенных метрик -->
+    <div class="metrics-container">
+        <!-- Таблица для метрик (изначально скрыта) -->
+        <table id="metricsTable">
+            <thead>
+                <tr>
+                    <th>j</th>
+                    <th>Оператор</th>
+                    <th>f<sub>1j</sub></th>
+                    <th>i</th>
+                    <th>Операнд</th>
+                    <th>f<sub>2i</sub></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- данные будут вставлены через JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Блок расширенных метрик (изначально скрыт) -->
+        <div id="extendedMetrics" class="extended-metrics" style="display: none;">
+            <h3>Расширенные метрики</h3>
+            <p id="dict-n">Словарь программы: </p>
+            <p id="length-N">Длина программы: </p>
+            <p id="volume-V">Объём программы: </p>
+        </div>
+    </div>
+
+    <!-- Для сообщений (загрузка, ошибки) -->
+    <pre id="output" style="margin-top: 20px; color: #666; font-size: 0.8em;"></pre>
+    
+    <script src="/web/assets/js/main.js"></script>
+</body>
 </html>
