@@ -113,10 +113,10 @@ button:disabled {
 .banner {
     position: relative;
     width: 100%;
-    background-image: url('/web/assets/jpg/img100.jpg');
+    background-image: url('/web/assets/jpg/img400.jpg');
     background-size: cover;
     background-position: center;
-    aspect-ratio: 30 / 10;
+    aspect-ratio: 4 / 1;
     margin-bottom: 20px;
     border-radius: 8px;
     overflow: hidden;
@@ -128,7 +128,7 @@ button:disabled {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 150%;
+    height: 30%;
     background: linear-gradient(to top, 
         rgba(255, 255, 255, 1),
         rgba(255, 255, 255, 0)

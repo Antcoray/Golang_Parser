@@ -10,7 +10,8 @@ import (
 	"math"
 )
 
-func main() {
+// func main() {
+func notmain() {
 	var operators = map[string]int{
 		"+": 0, "-": 0, "*": 0, "/": 0,
 		"<=": 0, ">=": 0, "!=": 0, "==": 0,
