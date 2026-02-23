@@ -45,16 +45,16 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 
 		if obj := v.semanticInfo.Defs[n]; obj != nil {
 			switch obj.(type) {
-			case *types.Var, *types.Const, *types.Nil:
+			case *types.Var, *types.Const, *types.Nil, *types.PkgName:
 				v.operandCount[n.Name]++
-			case *types.Func:
+			case *types.Func, *types.Builtin:
 				v.operatorCount[n.Name]++
 			}
 		} else if obj := v.semanticInfo.Uses[n]; obj != nil {
 			switch obj.(type) {
-			case *types.Var, *types.Const, *types.Nil:
+			case *types.Var, *types.Const, *types.Nil, *types.PkgName:
 				v.operandCount[n.Name]++
-			case *types.Func:
+			case *types.Func, *types.Builtin:
 				v.operatorCount[n.Name]++
 			}
 		}
@@ -300,7 +300,44 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 		if v.config.Operators["chan"] {
 			v.operatorCount["chan"]++
 		}
+	case *ast.GenDecl:
+		var op string
+		switch n.Tok {
+		case token.VAR:
+			op = "var"
+		case token.TYPE:
+			op = "type"
+		case token.CONST:
+			op = "const"
+		default:
+			return v // игнорируем import и другие
+		}
+		if v.config.Operators[op] {
+			v.operatorCount[op]++
+		}
+		// Обходим спецификации внутри
+		for _, spec := range n.Specs {
+			ast.Walk(v, spec)
+		}
+		return nil // потомки уже обойдены
 
+	case *ast.FuncDecl:
+		if v.config.Operators["func"] {
+			v.operatorCount["func"]++
+		}
+		if n.Name != nil {
+			ast.Walk(v, n.Name)
+		}
+		if n.Recv != nil {
+			ast.Walk(v, n.Recv)
+		}
+		if n.Type != nil {
+			ast.Walk(v, n.Type)
+		}
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+		return nil
 	}
 
 	return v

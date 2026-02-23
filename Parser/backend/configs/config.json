@@ -59,6 +59,10 @@
         "interface": true,
         "map": true,
         "chan": true,
-        ";": true
+        ";": true,
+        "var": true,
+        "type": true,
+        "const": true,
+        "func": true
     }
 }
