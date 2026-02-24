@@ -185,6 +185,11 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	case *ast.RangeStmt:
 		addOp("for")
 		addOp("range")
+		if n.Tok == token.DEFINE {
+			addOp(":=")
+		} else if n.Tok == token.ASSIGN {
+			addOp("=")
+		}
 
 	case *ast.GoStmt:
 		addOp("go")
