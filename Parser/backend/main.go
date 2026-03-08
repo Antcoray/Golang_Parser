@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	// η
 	r := gin.Default()
 
 	r.Static("/web", "../web")

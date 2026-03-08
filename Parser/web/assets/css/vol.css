@@ -1,10 +1,8 @@
-/* Основные стили */
 body {
     font-family: sans-serif;
     padding: 20px;
 }
 
-/* Контейнер для таблицы и расширенных метрик */
 .metrics-container {
     display: flex;
     gap: 20px;
@@ -12,7 +10,6 @@ body {
     margin-top: 20px;
 }
 
-/* Таблица */
 table {
     border-collapse: collapse;
     width: auto;
@@ -43,12 +40,10 @@ code {
     border-radius: 3px;
 }
 
-/* Скрываем таблицу изначально */
 #metricsTable {
     display: none;
 }
 
-/* Блок расширенных метрик */
 .extended-metrics {
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -67,7 +62,6 @@ code {
     font-size: 1.1em;
 }
 
-/* Зона дропа */
 .drop-zone {
     border: 2px dashed #ccc;
     border-radius: 4px;
@@ -83,7 +77,6 @@ code {
     background-color: #f0f0f0;
 }
 
-/* Информация о файле */
 .file-info {
     margin: 10px 0;
     padding: 8px;
@@ -103,13 +96,11 @@ code {
     margin-right: 5px;
 }
 
-/* Кнопка */
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Баннер 16:9 с эффектом переливания в фон */
 .banner {
     position: relative;
     width: 100%;
@@ -134,14 +125,4 @@ button:disabled {
         rgba(255, 255, 255, 0)
     );
     pointer-events: none;
-}
-
-/* Поддержка старых браузеров */
-@supports not (aspect-ratio: 16/9) {
-    .banner {
-        height: 0;
-        padding-bottom: 56.25%;
-        position: relative;
-        background-size: cover;
-    }
 }

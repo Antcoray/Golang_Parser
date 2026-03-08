@@ -1,44 +1,17 @@
 package routes
 
 import (
-	"Parser/models"
 	"fmt"
 	"go/ast"
-	"go/importer"
-	"go/parser"
-	"go/scanner"
 	"go/token"
 	"go/types"
-	"io"
-	"path/filepath"
-
-	"github.com/gin-gonic/gin"
 )
-
-func SetupAnalyzerRoutes(r *gin.Engine) {
-	//r.GET("/result", InitializeAnalyzer)
-	r.POST("/upload", RunAnalyzer)
-}
-
-type Analyzer struct {
-	config          models.Config
-	operatorCount   map[string]int
-	operandCount    map[string]int
-	uniqueOperators int
-	uniqueOperands  int
-	operatorsTotal  int
-	operandsTotal   int
-	semanticInfo    *types.Info
-	fset            *token.FileSet
-	inElseIfChain   bool
-}
 
 func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	if node != nil {
 		fmt.Printf("\033[37mVisiting: %T at %s\n", node, v.fset.Position(node.Pos()))
 	}
 
-	// Вспомогательная функция для добавления оператора с отладкой
 	addOp := func(op string) {
 		v.operatorCount[op]++
 		if v.fset != nil && node != nil {
@@ -47,11 +20,25 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 		}
 	}
 
+	addClassicOp := func(op string) {
+		v.operatorCountClassic[op]++
+		if v.fset != nil && node != nil {
+			pos := v.fset.Position(node.Pos())
+			fmt.Printf("\033[33mOperator %q at line %d (type: %T)\n", op, pos.Line, node)
+		}
+	}
+
 	addOperand := func(name string) {
 		v.operandCount[name]++
 		if v.fset != nil && node != nil {
 			pos := v.fset.Position(node.Pos())
 			fmt.Printf("\033[34mOperand %q at line %d (type: %T)\n", name, pos.Line, node)
+		}
+	}
+
+	updateMaxDepth := func() {
+		if v.currentDepth > v.maxDepth {
+			v.maxDepth = v.currentDepth
 		}
 	}
 
@@ -87,12 +74,11 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	case *ast.BasicLit:
 		addOperand(n.Value)
 
-	// ===== ValueSpec – handle = in var/const declarations =====
 	case *ast.ValueSpec:
 		if len(n.Values) > 0 {
 			addOp("=")
+			addClassicOp("=")
 		}
-		// Traverse all children to collect operands
 		for _, name := range n.Names {
 			ast.Walk(v, name)
 		}
@@ -107,6 +93,8 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	// switch-case
 	case *ast.TypeSwitchStmt:
 		addOp("switch")
+		//addClassicOp("switch")
+		updateMaxDepth()
 		if assign, ok := n.Assign.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
 			for _, lhs := range assign.Lhs {
 				if id, ok := lhs.(*ast.Ident); ok {
@@ -114,14 +102,107 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 				}
 			}
 		}
+
+		if n.Body != nil {
+			cases := 0
+			for _, stmt := range n.Body.List {
+				if _, ok := stmt.(*ast.CaseClause); ok {
+					cases++
+				}
+			}
+			if cases > 0 {
+				v.cl += cases - 1 // n ветвей эквивалентны n-1 if
+
+				for c := cases - 1; c > 0; c-- {
+					addClassicOp("if")
+				}
+				if cases > 2 {
+					v.currentDepth += cases - 2
+					//updateMaxDepth()
+					defer func() {
+						v.currentDepth -= cases - 2
+					}()
+				}
+			}
+		}
+
+		if n.Assign != nil {
+			ast.Walk(v, n.Assign)
+		}
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+		return nil
+
 	case *ast.SwitchStmt:
 		addOp("switch")
+		//addClassicOp("switch")
+		if n.Body != nil {
+			cases := 0
+			for _, stmt := range n.Body.List {
+				if _, ok := stmt.(*ast.CaseClause); ok {
+					cases++
+				}
+			}
+			if cases > 0 {
+				v.cl += cases - 1 // n ветвей эквивалентны n-1 if
 
-	// select
+				for c := cases - 1; c > 0; c-- {
+					addClassicOp("if")
+				}
+				if cases > 2 {
+					v.currentDepth += cases - 2
+					//updateMaxDepth()
+
+					defer func() {
+						v.currentDepth -= cases - 2
+					}()
+				}
+			}
+		}
+		if n.Init != nil {
+			ast.Walk(v, n.Init)
+		}
+		if n.Tag != nil {
+			ast.Walk(v, n.Tag)
+		}
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+		return nil
+
 	case *ast.SelectStmt:
 		addOp("select")
+		//addClassicOp("select")
+		updateMaxDepth()
+		if n.Body != nil {
+			cases := 0
+			for _, stmt := range n.Body.List {
+				if _, ok := stmt.(*ast.CaseClause); ok {
+					cases++
+				}
+			}
+			if cases > 0 {
+				v.cl += cases - 1 // n ветвей эквивалентны n-1 if
 
-	// assignment operators
+				for c := cases - 1; c > 0; c-- {
+					addClassicOp("if")
+				}
+				if cases > 2 {
+					v.currentDepth += cases - 2
+					//updateMaxDepth()
+
+					defer func() {
+						v.currentDepth -= cases - 2
+					}()
+				}
+			}
+		}
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+		return nil
+
 	case *ast.AssignStmt:
 		var op string
 		switch n.Tok {
@@ -154,20 +235,24 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 		}
 		if op != "" {
 			addOp(op)
+			addClassicOp(op)
 		}
 
-	// Control constructs: if (consider else-if as single operator)
 	case *ast.IfStmt:
+		v.cl++
+		addClassicOp("if")
+		updateMaxDepth()
 		if !v.inElseIfChain {
 			addOp("if")
 		}
-		// Manually traverse children
 		if n.Cond != nil {
 			ast.Walk(v, n.Cond)
 		}
+		v.currentDepth++
 		if n.Body != nil {
 			ast.Walk(v, n.Body)
 		}
+		v.currentDepth--
 		if n.Else != nil {
 			if elseIf, ok := n.Else.(*ast.IfStmt); ok {
 				old := v.inElseIfChain
@@ -175,30 +260,78 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 				ast.Walk(v, elseIf)
 				v.inElseIfChain = old
 			} else {
+				updateMaxDepth()
+				v.currentDepth++
 				ast.Walk(v, n.Else)
+				v.currentDepth--
 			}
 		}
 		return nil
 
 	case *ast.ForStmt:
 		addOp("for")
+		addClassicOp("for")
+		updateMaxDepth()
+
+		if n.Init != nil {
+			ast.Walk(v, n.Init)
+		}
+		if n.Cond != nil {
+			ast.Walk(v, n.Cond)
+		}
+		if n.Post != nil {
+			ast.Walk(v, n.Post)
+		}
+
+		v.currentDepth++
+
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+
+		v.currentDepth--
+		return nil
 	case *ast.RangeStmt:
 		addOp("for")
 		addOp("range")
-		if n.Tok == token.DEFINE {
-			addOp(":=")
-		} else if n.Tok == token.ASSIGN {
-			addOp("=")
+		addClassicOp("for")
+		addClassicOp("range")
+		updateMaxDepth()
+		if n.Key != nil {
+			ast.Walk(v, n.Key)
 		}
+		if n.Value != nil {
+			ast.Walk(v, n.Value)
+		}
+		if n.X != nil {
+			ast.Walk(v, n.X)
+		}
+		switch n.Tok {
+		case token.DEFINE:
+			addOp(":=")
+			addClassicOp(":=")
+		case token.ASSIGN:
+			addOp("=")
+			addClassicOp("=")
+		}
+		v.currentDepth++
+		if n.Body != nil {
+			ast.Walk(v, n.Body)
+		}
+		v.currentDepth--
+		return nil
 
 	case *ast.GoStmt:
 		addOp("go")
+		addClassicOp("go")
 
 	case *ast.DeferStmt:
 		addOp("defer")
+		addClassicOp("defer")
 
 	case *ast.ReturnStmt:
 		addOp("return")
+		addClassicOp("return")
 
 	case *ast.BranchStmt:
 		var op string
@@ -214,29 +347,40 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 		}
 		if op != "" {
 			addOp(op)
+			addClassicOp(op)
 		}
 
 	case *ast.IncDecStmt:
-		if n.Tok == token.INC {
+		switch n.Tok {
+		case token.INC:
 			addOp("++")
-		} else if n.Tok == token.DEC {
+			addClassicOp("++")
+		case token.DEC:
 			addOp("--")
+			addClassicOp("--")
 		}
 
 	case *ast.SendStmt:
 		addOp("<-")
+		addClassicOp("<-")
 
 	case *ast.BinaryExpr:
 		addOp(n.Op.String())
+		addClassicOp(n.Op.String())
 
 	case *ast.UnaryExpr:
 		addOp(n.Op.String())
+		addClassicOp(n.Op.String())
 	case *ast.StarExpr:
 		addOp("*")
+		addClassicOp("*")
 	case *ast.KeyValueExpr:
 		addOp(":")
+		addClassicOp(":")
 	case *ast.LabeledStmt:
 		addOp(":")
+		addClassicOp(":")
+
 	case *ast.CaseClause:
 		if n.List == nil { // default:
 			addOp("default")
@@ -254,56 +398,66 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 
 	case *ast.CallExpr:
 		addOp("()")
+		addClassicOp("()")
 
 	case *ast.IndexExpr:
 		addOp("[]")
+		addClassicOp("[]")
 
 	case *ast.SliceExpr:
 		addOp("[ : ]")
+		addClassicOp("[ : ]")
 
 	case *ast.TypeAssertExpr:
 		addOp(".(type)")
+		addClassicOp(".(type)")
 
 	case *ast.Ellipsis:
 		addOp("...")
+		addClassicOp("...")
 
-	// ========== Halstead operators ==========
-	// Dot (selector)
 	case *ast.SelectorExpr:
 		addOp(".")
+		addClassicOp(".")
 
-	// Block
 	case *ast.BlockStmt:
 		addOp("{}")
+		addClassicOp("{}")
 
-	// Parentheses for grouping
 	case *ast.ParenExpr:
 		addOp("()")
+		addClassicOp("()")
 
 	case *ast.StructType:
 		addOp("struct")
-		addOp("{}") // скобки структуры
+		addOp("{}")
+		addClassicOp("struct")
+		addClassicOp("{}")
 
 	case *ast.InterfaceType:
 		addOp("interface")
-		addOp("{}") // скобки интерфейса
+		addOp("{}")
+		addClassicOp("interface")
+		addClassicOp("{}")
 
 	case *ast.CompositeLit:
 		addOp("{}")
+		addClassicOp("{}")
 
 	case *ast.ArrayType:
-		addOp("[]") // array type also uses []
+		addOp("[]")
+		addClassicOp("[]")
 
 	case *ast.MapType:
 		addOp("map")
+		addClassicOp("map")
 
 	case *ast.ChanType:
 		addOp("chan")
+		addClassicOp("chan")
 
 	case *ast.FuncType:
-		// Parentheses around parameters (always present)
 		addOp("()")
-		// If results are parenthesized (e.g., multiple return values)
 		if n.Results != nil && n.Results.Opening.IsValid() {
 			addOp("()")
 		}
@@ -334,10 +488,10 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 		case token.CONST:
 			op = "const"
 		default:
-			return v // ignore import and others
+			return v
 		}
 		addOp(op)
-		// Traverse specifications inside
+		addClassicOp(op)
 		for _, spec := range n.Specs {
 			ast.Walk(v, spec)
 		}
@@ -345,108 +499,4 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	}
 
 	return v
-}
-
-func CalculateHalsteadMetrics(v *Analyzer) {
-	for _, val := range v.operatorCount {
-		v.operatorsTotal += val
-		v.uniqueOperators++
-	}
-
-	for _, val := range v.operandCount {
-		v.operandsTotal += val
-		v.uniqueOperands++
-	}
-}
-
-func RunAnalyzer(c *gin.Context) {
-	fpath := filepath.Join("configs", "config.json")
-	config := models.LoadConfig(fpath)
-	fmt.Println(config)
-
-	analyzer := &Analyzer{
-		operatorCount: make(map[string]int),
-		operandCount:  make(map[string]int),
-	}
-
-	file, header, err := c.Request.FormFile("file")
-	if err != nil {
-		panic(err)
-	}
-	content, err := io.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
-
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, header.Filename, content, parser.SkipObjectResolution)
-	if err != nil {
-		panic(err)
-	}
-
-	info := &types.Info{
-		Defs: make(map[*ast.Ident]types.Object),
-		Uses: make(map[*ast.Ident]types.Object),
-	}
-	conf := types.Config{Importer: importer.Default()}
-	_, err = conf.Check(node.Name.Name, fset, []*ast.File{node}, info)
-	if err != nil {
-		panic(err)
-	}
-
-	analyzer.semanticInfo = info
-	analyzer.fset = fset
-
-	// Считаем точки с запятой (если нужно — можно удалить, но оставим)
-	analyzer.countPunctuation(header.Filename, content)
-
-	ast.Walk(analyzer, node)
-
-	CalculateHalsteadMetrics(analyzer)
-
-	fmt.Println(analyzer.operatorCount)
-	fmt.Println(analyzer.operandCount)
-	fmt.Println("Unique operators:", analyzer.uniqueOperators)
-	fmt.Println("Unique operands:", analyzer.uniqueOperands)
-	fmt.Println("Total operators:", analyzer.operatorsTotal)
-	fmt.Println("Total operands:", analyzer.operandsTotal)
-
-	c.JSON(200, gin.H{
-		"operators":        analyzer.operatorCount,
-		"operands":         analyzer.operandCount,
-		"unique_operators": analyzer.uniqueOperators,
-		"unique_operands":  analyzer.uniqueOperands,
-		"operators_total":  analyzer.operatorsTotal,
-		"operands_total":   analyzer.operandsTotal,
-	})
-}
-
-func (v *Analyzer) countPunctuation(filename string, content []byte) {
-	var s scanner.Scanner
-	fset := token.NewFileSet()
-	file := fset.AddFile(filename, -1, len(content))
-	s.Init(file, content, nil, 0)
-
-	semicolonCount := 0
-	commaCount := 0
-	for {
-		_, tok, lit := s.Scan()
-		if tok == token.EOF {
-			break
-		}
-		if tok == token.SEMICOLON && lit == ";" {
-			semicolonCount++
-		}
-		if tok == token.COMMA {
-			commaCount++
-		}
-	}
-	if semicolonCount != 0 {
-		v.operatorCount[";"] = semicolonCount
-		fmt.Printf("Operator %q count: %d\n", ";", semicolonCount)
-	}
-	if commaCount != 0 {
-		v.operatorCount[","] = commaCount
-		fmt.Printf("Operator %q count: %d\n", ",", commaCount)
-	}
 }

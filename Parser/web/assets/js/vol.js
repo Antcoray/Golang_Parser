@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('uploadBtn');
     const fileInfo = document.getElementById('fileInfo');
 
-    // Drag & Drop события
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
@@ -25,19 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Клик по зоне открывает диалог выбора файла
     dropZone.addEventListener('click', () => {
         fileInput.click();
     });
 
-    // Обработка выбора файла через input
     fileInput.addEventListener('change', () => {
         if (fileInput.files.length > 0) {
             handleFileSelect(fileInput.files[0]);
         }
     });
 
-    // Нажатие кнопки загрузки
     uploadBtn.addEventListener('click', () => {
         if (selectedFile) {
             uploadFile(selectedFile);
@@ -63,7 +59,6 @@ async function uploadFile(file) {
     const metricsTable = document.getElementById('metricsTable');
     const extendedMetrics = document.getElementById('extendedMetrics');
 
-    // Блокируем кнопку на время загрузки
     uploadBtn.disabled = true;
     output.textContent = `Загрузка файла ${file.name}...`;
 
@@ -71,7 +66,7 @@ async function uploadFile(file) {
     formData.append('file', file);
 
     try {
-        const response = await fetch('/upload', {
+        const response = await fetch('/uploadvol', {
             method: 'POST',
             body: formData
         });
@@ -82,11 +77,9 @@ async function uploadFile(file) {
 
         const data = await response.json();
 
-        // Строим таблицу и обновляем расширенные метрики
         buildCombinedTable(data);
         updateExtendedMetrics(data);
 
-        // Показываем таблицу и блок метрик
         metricsTable.style.display = 'table';
         extendedMetrics.style.display = 'block';
 
@@ -94,11 +87,9 @@ async function uploadFile(file) {
     } catch (error) {
         console.error('Ошибка:', error);
         output.textContent = 'Ошибка: ' + error.message;
-        // Скрываем таблицу и блок метрик при ошибке
         metricsTable.style.display = 'none';
         extendedMetrics.style.display = 'none';
     } finally {
-        // Разблокируем кнопку, чтобы можно было загрузить другой файл
         uploadBtn.disabled = false;
     }
 }
@@ -107,7 +98,6 @@ function buildCombinedTable(data) {
     const operatorsMap = data.operators || {};
     const operandsMap = data.operands || {};
 
-    // Сортировка по убыванию количества, затем по ключу
     const operators = Object.entries(operatorsMap).sort((a, b) => {
         if (b[1] !== a[1]) return b[1] - a[1];
         return a[0].localeCompare(b[0]);
@@ -155,7 +145,6 @@ function buildCombinedTable(data) {
         tbody.appendChild(tr);
     }
 
-    // Итоговая строка с метриками
     const totalRow = document.createElement('tr');
     totalRow.classList.add('total-row');
     totalRow.innerHTML = `
@@ -177,7 +166,7 @@ function updateExtendedMetrics(data) {
 
     const n = n1 + n2;
     const N = N1 + N2;
-    // Вычисляем логарифм по основанию 2, округляем до 2 знаков
+    
     const V = (n > 0) ? (N * Math.log2(n)).toFixed(2) : '0.00';
 
     document.getElementById('dict-n').innerHTML = `Словарь программы: η = ${n1} + ${n2} = ${n}`;

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Program volume metrics</title>
+    <link rel="stylesheet" href="/web/assets/css/vol.css">
+</head>
+<body>
+    <div class="banner" role="img" aria-label="banner"></div>
+
+    <h1>Метрики Холстеда (6 базовых и 3 расширенных)</h1>
+    
+    <div id="dropZone" class="drop-zone">
+        <p>Перетащите .go файл сюда или нажмите для выбора</p>
+        <input type="file" id="fileInput" accept=".go" style="display: none;">
+    </div>
+
+    <div id="fileInfo" class="file-info"></div>
+
+    <button id="uploadBtn" disabled>Загрузить файл на сервер</button>
+
+    <div class="metrics-container">
+        <table id="metricsTable">
+            <thead>
+                <tr>
+                    <th>j</th>
+                    <th>Оператор</th>
+                    <th>f<sub>1j</sub></th>
+                    <th>i</th>
+                    <th>Операнд</th>
+                    <th>f<sub>2i</sub></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <div id="extendedMetrics" class="extended-metrics" style="display: none;">
+            <h3>Расширенные метрики</h3>
+            <p id="dict-n">Словарь программы: </p>
+            <p id="length-N">Длина программы: </p>
+            <p id="volume-V">Объём программы: </p>
+        </div>
+    </div>
+
+    <pre id="output" style="margin-top: 20px; color: #666; font-size: 0.8em;"></pre>
+    
+    <script src="/web/assets/js/vol.js"></script>
+</body>
+</html>

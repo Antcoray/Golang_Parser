@@ -77,9 +77,10 @@ L1:
 	}
 	var Chuvachok chuvak = chuvak{18, false, 0, "Durak"}
 	fmt.Println(Chuvachok)
+	Add(5, 6, 7)
 }
 func Add(x1 int, x2 int, x3 int) int {
-	return x1 + x2 + x3
+	return x1 + (x2 + x3)
 }
 func Multiply(numbers ...float64) float64 {
 	var sum float64 = 1
