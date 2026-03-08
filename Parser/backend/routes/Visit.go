@@ -118,7 +118,7 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 				}
 				if cases > 2 {
 					v.currentDepth += cases - 2
-					//updateMaxDepth()
+					updateMaxDepth()
 					defer func() {
 						v.currentDepth -= cases - 2
 					}()
@@ -137,6 +137,7 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 	case *ast.SwitchStmt:
 		addOp("switch")
 		//addClassicOp("switch")
+		updateMaxDepth()
 		if n.Body != nil {
 			cases := 0
 			for _, stmt := range n.Body.List {
@@ -152,7 +153,7 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 				}
 				if cases > 2 {
 					v.currentDepth += cases - 2
-					//updateMaxDepth()
+					updateMaxDepth()
 
 					defer func() {
 						v.currentDepth -= cases - 2
@@ -190,7 +191,7 @@ func (v *Analyzer) Visit(node ast.Node) ast.Visitor {
 				}
 				if cases > 2 {
 					v.currentDepth += cases - 2
-					//updateMaxDepth()
+					updateMaxDepth()
 
 					defer func() {
 						v.currentDepth -= cases - 2
